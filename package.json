@@ -6,7 +6,8 @@
     "preview": "vite preview",
     "clean": "rimraf dist/",
     "build": "npm run clean && tsc && vite build",
-    "lint": "eslint . --max-warnings=0"
+    "lint": "eslint . --max-warnings=0 && npm run lint-additional-files",
+    "lint-additional-files": "prettier --check **/*.{md,json,yml}"
   },
   "dependencies": {
     "@fontsource/inter": "^4.5.15",
