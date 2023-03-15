@@ -6,17 +6,17 @@
 
 ## Introduction
 
-React gives you a lot of freedom when it comes to structuring your components. Unlike in frameworks like Angular, you aren't forced to separate your business logic (and data) from your HTML. On one hand, this freedom is great because you can work in the way **you** like. Want to quickly sketch a component? Just create a function, throw in some data, return some JSX, and you are done. While this freedom is awesome for quickly getting started building the initial parts of your application, it can become a burden in the long run: Where does the business logic end and the presentational part of my component start? There are now dozens of (helper) functions, but which one was actually meant to be called when clicking this button? I am new to this code base and all components look different - where should I begin?
+React gives you a lot of freedom when it comes to structuring your components. Unlike in frameworks like Angular, you aren't forced to separate your business logic (and data) from your HTML. On one hand, this freedom is great because you can work in the way <ins>**you**</ins> like. Want to quickly sketch a component? Just create a function, throw in some data, return some JSX, and you are done. While this freedom is awesome for quickly getting started building the initial parts of your application, it can become a burden in the long run: Where does the business logic end and the presentational part of my component start? There are now dozens of (helper) functions, but which one was actually meant to be called when clicking this button? I am new to this code base and all components look different - where should I begin?
 
 ## The Container Pattern
 
-To clearly separate business logic (like the use of hooks, component-internal state, etc.) from the presentation (i.e. the HTML/JSX), React developers have traditionally used patterns like the [Container Pattern](https://www.freecodecamp.org/news/react-superpowers-container-pattern-20d664bdae65/). When using the Container Pattern, you define two components: The Presentation component, and the Container component. The Presentation component is, as the name implies, only responsible for rendering the UI. This component does not have any internal state, does not call any APIs, etc. The Container component, on the other hand, contains your business logic. This Container component passes all of the necessary data to the Presentation component using Props. Thus, the Container does not deal with the UI, but instead only focuses on state handling, calling APIs, etc.
+To clearly separate business logic (like the use of hooks, component-internal state, etc.) from the presentation (i.e. the HTML/JSX), React developers have traditionally used patterns like the [Container Pattern](https://www.freecodecamp.org/news/react-superpowers-container-pattern-20d664bdae65/). When using the Container Pattern, you define two components: The Presentation component, and the Container component. The Presentation component is, as the name implies, only responsible for rendering the UI. This component does not have any internal state, does not call any APIs, etc. The Container component, on the other hand, contains your business logic. This Container component passes all of the necessary data to the Presentation component using Props. Thus, the Container does not deal with the UI, but instead only focuses on state handling, calling APIs, and the like.
 
 ## Towards the Controller Pattern
 
-By using the Container Pattern, you draw a clear line between the UI and the logic. However, it requires you to create two components. In old versions of React, this was necessary because there was no way to use state and the like outside of a component. However, with the introduction of hooks (and especially the ability to create custom hooks), React laid the foundation for the Controller Pattern. The Controller Pattern is essentially a hook-based version of the Container Pattern and thus, we say that it is an evolution of the Container Pattern.
+By using the Container Pattern, you draw a clear line between the UI and the logic. However, it requires you to create two components. In old versions of React, this was necessary because there was no way to use state and other component APIs outside of a component. However, with the introduction of hooks, and especially the ability to create custom hooks, React laid the foundation for the Controller Pattern. The Controller Pattern is essentially a hook-based version of the Container Pattern and thus, we say that it is an evolution of the Container Pattern.
 
-In the Controller Pattern, you create only one component. This component is only responsible for rendering the UI. The business logic is moved to a custom hook: The controller.
+In the Controller Pattern, you create only one component. This component is only responsible for rendering the UI. The business logic is moved to a custom hook: The Controller.
 
 ## Component boilerplate code
 
@@ -63,7 +63,9 @@ Arguably, it is rather hard to understand what is going on. So let's have a look
 
 To understand how the Controller Pattern works, let's build a small example component. This component is meant to display a random quote coming from an API. The user can click a button "Random Quote" that will make the component fetch and display a new random quote. This is how the application looks like:
 
-<img src="./screenshots/application-screenshot.png" style="border: 3px solid #e0e0e0" width="500px">
+<!-- prettier-ignore -->
+| <img src="./screenshots/application-screenshot.png" width="500px"> |
+| --- |
 
 Without any specific pattern, you would probably create a component like this:
 
@@ -273,9 +275,11 @@ function useController(props: Props): Controller {
 }
 ```
 
+Now, whenever a developer looks at your component, he or she can clearly see that `userName` is meant to be accessed in the JSX. If we had data structures or helper functions inside our Controller that aren't meant to be called in the JSX, we would simply not return them from the Controller.
+
 ### State
 
-In theory, we could use state just like in our regular component, and just return it from our Controller:
+We could use state just like in our regular component, and return it from our Controller:
 
 ```ts
 function useController(props: Props): Controller {
@@ -294,11 +298,39 @@ function useController(props: Props): Controller {
 
 However, we want to clearly communicate what our component-internal state looks like. Thus, we define one single state object where the entire state is contained. This also clearly separates state from Props and the rest, so that it is always clear what the "thing" is that you are currently accessing.
 
-To update our state, we just call `setState()` like this:
+To update our state, we call `setState()` like this:
 
 ```ts
 setState((state) => ({ ...state, isLoading: false, currentQuote: quote }));
 ```
+
+It is tempting to return the state setter function from the Controller and to directly use it in the JSX. However, it is recommended to create helper functions instead:
+
+```tsx
+interface State {
+  counter: number;
+}
+interface Controller {
+  state: State;
+
+  incrementCounter: () => void;
+}
+function useController(): Controller {
+  const [state, setState] = React.useState<State>({
+    counter: 1,
+  });
+
+  return {
+    state: state,
+
+    incrementCounter: (): void => {
+      setState((state) => ({ ...state, counter: state.counter + 1 }));
+    },
+  };
+}
+```
+
+In this way, you are able to define a clear "state update API". Also, you will probably notice that one function returned from the Controller is often called at 2 or 3 places in the JSX, which would add redundancy if you did not use such a helper function.
 
 ### Dealing with "dumb" components
 
@@ -324,7 +356,7 @@ export const FancyQuotes: React.FC<Props> = (props) => {
 
 ## Conclusion
 
-The Controller Pattern defines a strict separation between business logic and presentation. The downside of this pattern is that you need to write more code in the first place. However, you should remember that you will probably read your code much more often than writing it (see https://devblogs.microsoft.com/oldnewthing/20070406-00/?p=27343 and https://www.goodreads.com/quotes/835238-indeed-the-ratio-of-time-spent-reading-versus-writing-is). Thus, investing in a clear component structure will help you stay productive in the long run.
+The Controller Pattern strictly separates business logic and presentation. The downside of this pattern is that you need to write more code in the first place. However, you should remember that you will probably read your code much more often than writing it (see https://devblogs.microsoft.com/oldnewthing/20070406-00/?p=27343 and https://www.goodreads.com/quotes/835238-indeed-the-ratio-of-time-spent-reading-versus-writing-is). Thus, investing in a clear component structure will help you stay productive in the long run.
 
 ## Bonus tips
 
@@ -336,7 +368,7 @@ As you might remember, we have updated our component state like this:
 setState((state) => ({ ...state, isLoading: false, currentQuote: quote }));
 ```
 
-Bonus tip: In TypeScript, this is actually not fully type-safe. If you make a typo in an object key, the compiler will not complain:
+In TypeScript, this is actually not fully type-safe. If you make a typo in an object key, the compiler will not complain:
 
 ```ts
 setState((state) => ({ ...state, LOADING: false, currentQuote: quote }));
@@ -367,12 +399,10 @@ Are you using VSCode? If so, then this tip is for you!
 
 Create a file `.vscode/snippets.code-snippets`. (The file name must end on `.code-snippets`, but the prefix does not matter.)
 
-Then, pase the following:
+Then, paste the following:
 
 ```
 {
-  // See https://code.visualstudio.com/docs/editor/userdefinedsnippets
-
   "reactcomponent": {
     "scope": "typescriptreact",
     "prefix": "reactcomponent",
@@ -406,7 +436,7 @@ Then, pase the following:
 }
 ```
 
-Now, whenever you type "reactcomponent", you get a suggestion that, once accepted, creates the entire boilerplate for a Controller Pattern component.
+Now, whenever you type "reactcomponent", you get a suggestion that, once accepted, creates the entire boilerplate for a Controller Pattern component. See [the documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets) for more information about user-defined code snippets.
 
 ## Final notes
 
@@ -414,5 +444,5 @@ Now, whenever you type "reactcomponent", you get a suggestion that, once accepte
 
 - One idea that has not been mentioned before: If you want to write tests for your business logic, the Controller Pattern might make your life pretty easy, because you can easily test the "API" that is returned by the Controller.
 - I have invented the name "Controller Pattern". There might already be a similar approach under a different name.
-- When describing the Container Pattern, I am talking about Presentation and Container components. I found no clear definitions saying how the two components shall be called, thus I decided to simply define the two names like that.
-- Please see the Controller Pattern as a source for inspiration: Maybe, developers in your team prefer to destructure Props. Or to create two hooks instead of one. Or... Simply adapt the pattern to your personal preferences. The only thing I suggest: Clearly define (e.g. in a README file) how an ideal component should look like. And try to enforce standards e.g. using a linter. Otherwise, you will end up with multiple "flavors" in your code base, reducing the benefits of the Controller Pattern.
+- When describing the Container Pattern, I am talking about Presentation and Container components. I found no clear definitions saying how the two components shall be called, thus I decided to simply define the two names like that. (Some sources simply append "Container" to the actual component name, but that makes it rather confusing for the user of the component: "I wanted to use the Alert component, but why is only a component called 'AlertContainer' exported here?" This can only be "fixed" by using default exports, but that opens up another long discussion...)
+- Please try to see the Controller Pattern as a source for inspiration instead of a fixed set of rules: Maybe, developers in your team prefer to destructure Props. Or to create two hooks instead of one. Or... Simply adapt the pattern to your personal preferences. The only thing I suggest: Clearly define (e.g. in a Readme file) how an ideal component should look like. And try to enforce standards e.g. using a linter. Otherwise, you will end up with multiple "flavors" in your code base, reducing the benefits of the Controller Pattern.
