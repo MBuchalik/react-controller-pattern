@@ -1,4 +1,4 @@
-> This repository is used to illustrate a React pattern called "Controller Pattern". In the following, you can find an article describing this pattern.
+> This repository is used to illustrate a React pattern called "Controller Pattern". In the following, you can find an article describing this pattern. The article has also been published on Medium, see https://medium.com/@MBuchalik/the-controller-pattern-separate-business-logic-from-presentation-in-react-331f72fcb32a
 
 # The Controller Pattern: Separate business logic from presentation in React
 
